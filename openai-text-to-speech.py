@@ -85,7 +85,7 @@ def play_audio_from_queue(audio_queue, initial_buffer_size=262144, chunk_size=16
         try:
             logging.debug(f"Buffer size before decoding: {len(buffer.getvalue())} bytes")
             process = subprocess.Popen(
-                ["/opt/homebrew/Cellar/ffmpeg/7.1/bin/ffmpeg", "-i", "pipe:0", "-f", "s16le", "-ar", "24000", "-ac", "1", "pipe:1"],
+                ["/opt/homebrew/bin/ffmpeg", "-i", "pipe:0", "-f", "s16le", "-ar", "24000", "-ac", "1", "pipe:1"],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -134,7 +134,7 @@ def generate_and_play_speech(text):
     api_url = "https://api.openai.com/v1/audio/speech"
     params = {
         "model": "tts-1-hd",
-        "voice": "echo",
+        "voice": "onyx",
         "input": text,
         "rate": 0.85
     }
@@ -152,11 +152,24 @@ def generate_and_play_speech(text):
     play_thread.join()
     logging.debug("Speech generation and playback complete.")
 
+def truncate_text(text, limit=4096):
+    if len(text) <= limit:
+        return text
+    truncated = text[:limit]
+    last_space = truncated.rfind(" ")
+    return truncated if last_space == -1 else truncated[:last_space]
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        logging.error("No text provided. Usage: python script.py <text>")
-        sys.exit(1)
-    text = " ".join(sys.argv[1:])
+    text = sys.stdin.read()
+
+    # TODO: stream input or send multiple requests
+    text = truncate_text(text)
+
+    # if len(sys.argv) < 2:
+    #     logging.error("No text provided. Usage: python script.py <text>")
+    #     sys.exit(1)
+    # text = " ".join(sys.argv[1:])
     logging.info(f"Input text: {text}")
     try:
         generate_and_play_speech(text)
